@@ -73,13 +73,14 @@ func (c *Codec) Encrypt(buf []byte, useShanda, useAES bool) (res []byte, err err
 // The `p` byte array should not include the header (4 bytes).
 // Setting `useShanda` as True will encrypt the packet with Shanda.
 // Setting `useAES` as True will encrypt the packet with AES.
-func (c *Codec) Decrypt(buf []byte, useShanda, useAES bool) (err error) {
+func (c *Codec) Decrypt(buf []byte, useShanda, useAES bool) (res []byte, err error) {
+	res = append(res, buf...)
 	if useAES {
-		err = AESCrypt(c.ivRecv[:], buf)
+		err = AESCrypt(c.ivRecv[:], res)
 	}
 
 	if useShanda {
-		ShandaDecrypt(buf)
+		ShandaDecrypt(res)
 	}
 
 	c.Shuffle(false)
