@@ -19,11 +19,16 @@ var ivShiftKey = [...]byte{
 	0x84, 0x7F, 0x61, 0x1E, 0xCF, 0xC5, 0xD1, 0x56, 0x3D, 0xCA, 0xF4, 0x05, 0xC6, 0xE5, 0x08, 0x49,
 }
 
-func (c *Codec) Shuffle() {
+func (c *Codec) Shuffle(send bool) {
 	newIV := []byte{0xF2, 0x53, 0x50, 0xC6}
 
 	for i := 0; i < 4; i++ {
-		input := c.key[i]
+		var input byte
+		if send {
+			input = c.ivSend[i]
+		} else {
+			input = c.ivRecv[i]
+		}
 		shiftVal := ivShiftKey[input]
 
 		newIV[0] += ivShiftKey[newIV[1]] - input
@@ -41,6 +46,10 @@ func (c *Codec) Shuffle() {
 	}
 
 	for i := byte(0); i < 4; i++ {
-		copy(c.key[4*i:], newIV[:])
+		if send {
+			copy(c.ivSend[4*i:], newIV[:])
+		} else {
+			copy(c.ivRecv[4*i:], newIV[:])
+		}
 	}
 }

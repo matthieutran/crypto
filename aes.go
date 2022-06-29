@@ -17,7 +17,7 @@ var userKey = [...]byte{
 	0x52, 0x00, 0x00, 0x00,
 }
 
-func (c *Codec) AESCrypt(buf []byte) (err error) {
+func AESCrypt(key []byte, buf []byte) (err error) {
 	var pos, tPos, cbWrite, cb int32 = 0, 0, 0, int32(len(buf))
 	var first byte = 1
 
@@ -36,7 +36,7 @@ func (c *Codec) AESCrypt(buf []byte) (err error) {
 			return err
 		}
 
-		stream := cipher.NewOFB(block, c.key[:])
+		stream := cipher.NewOFB(block, key[:])
 		stream.XORKeyStream(buf[pos:pos+cbWrite], buf[pos:pos+cbWrite])
 		pos += tPos
 

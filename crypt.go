@@ -1,4 +1,4 @@
-// Package crypto provides tools to encrypt and decrypt networking packets using Shanda and AES encryptions.
+// Package codec provides tools to encrypt and decrypt networking packets using Shanda and AES encryptions.
 package crypto
 
 const (
@@ -11,19 +11,19 @@ const (
 // The `key` consists of a 4-byte value repeated four times, resulting in a 16-byte packet.
 // The `majorVersion` is included in the encrypted packet's header.
 type Codec struct {
-	recvIV       [16]byte
-	sendIV       [16]byte
+	ivRecv       [16]byte
+	ivSend       [16]byte
 	majorVersion uint16
 }
 
 // NewCodec returns a fresh instance of a codec.
-func NewCodec(recvIV, sendIV [4]byte, majorVersion int) (c Codec) {
+func NewCodec(ivRecv, ivSend [4]byte, majorVersion int) (c Codec) {
 	c.majorVersion = encodeVersion(uint16(majorVersion))
 
 	// Repeat the key 4 times
 	for i := 0; i < 4; i++ {
-		copy(c.recvIV[encryptedHeaderSize*i:], recvIV[:])
-		copy(c.sendIV[encryptedHeaderSize*i:], sendIV[:])
+		copy(c.ivRecv[encryptedHeaderSize*i:], ivRecv[:])
+		copy(c.ivSend[encryptedHeaderSize*i:], ivSend[:])
 	}
 
 	return
@@ -32,8 +32,8 @@ func NewCodec(recvIV, sendIV [4]byte, majorVersion int) (c Codec) {
 func (c *Codec) generateHeader(buffer []byte) {
 	cb := uint16(len(buffer) - encryptedHeaderSize)
 
-	iiv := uint16(c.sendIV[3] & 0xFF)
-	iiv |= uint16(c.sendIV[2]) << 8 & 0xFF00
+	iiv := uint16(c.ivSend[3] & 0xFF)
+	iiv |= uint16(c.ivSend[2]) << 8 & 0xFF00
 
 	iiv ^= c.majorVersion
 	mlength := uint16((cb << 8 & 0xFF00) | cb>>8)
@@ -59,11 +59,11 @@ func (c *Codec) Encrypt(buf []byte, useShanda, useAES bool) (res []byte, err err
 		ShandaEncrypt(res[encryptedHeaderSize:])
 	}
 	if useAES {
-		err = c.AESCrypt(res[encryptedHeaderSize:])
+		err = AESCrypt(c.ivSend[:], res[encryptedHeaderSize:])
 	}
 
 	// Shuffle IV keys
-	c.Shuffle()
+	c.Shuffle(true)
 
 	return
 }
@@ -73,20 +73,26 @@ func (c *Codec) Encrypt(buf []byte, useShanda, useAES bool) (res []byte, err err
 // The `p` byte array should not include the header (4 bytes).
 // Setting `useShanda` as True will encrypt the packet with Shanda.
 // Setting `useAES` as True will encrypt the packet with AES.
-func (c *Codec) Decrypt(buf []byte, useShanda, useAES bool) (err error) {
+func (c *Codec) Decrypt(buf []byte, useShanda, useAES bool) (res []byte, err error) {
+	res = append(res, buf...)
+
 	if useAES {
-		err = c.AESCrypt(buf)
+		err = AESCrypt(c.ivRecv[:], res)
 	}
 
 	if useShanda {
-		ShandaDecrypt(buf)
+		ShandaDecrypt(res)
 	}
 
-	c.Shuffle()
+	c.Shuffle(false)
 	return
 }
 
 // IV returns the struct's initialization vector of the key (16 bytes).
-func (c Codec) IV() []byte {
-	return c.sendIV[:]
+func (c Codec) IVSend() []byte {
+	return c.ivSend[:]
+}
+
+func (c Codec) IVRecv() []byte {
+	return c.ivRecv[:]
 }
