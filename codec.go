@@ -59,7 +59,7 @@ func (c *Codec) Encrypt(buf []byte, useShanda, useAES bool) (res []byte, err err
 		ShandaEncrypt(res[encryptedHeaderSize:])
 	}
 	if useAES {
-		err = AESCrypt(res[encryptedHeaderSize:])
+		err = AESCrypt(c.ivSend[:], res[encryptedHeaderSize:])
 	}
 
 	// Shuffle IV keys
@@ -75,7 +75,7 @@ func (c *Codec) Encrypt(buf []byte, useShanda, useAES bool) (res []byte, err err
 // Setting `useAES` as True will encrypt the packet with AES.
 func (c *Codec) Decrypt(buf []byte, useShanda, useAES bool) (err error) {
 	if useAES {
-		err = AESCrypt(buf)
+		err = AESCrypt(c.ivRecv[:], buf)
 	}
 
 	if useShanda {
