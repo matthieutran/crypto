@@ -1,4 +1,4 @@
-// Package crypto provides tools to encrypt and decrypt networking packets using Shanda and AES encryptions.
+// Package codec provides tools to encrypt and decrypt networking packets using Shanda and AES encryptions.
 package crypto
 
 const (
